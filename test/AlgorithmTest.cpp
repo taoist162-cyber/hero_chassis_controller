@@ -1,4 +1,4 @@
-#include "ros_package_template/Algorithm.hpp"
+#include "hero_chassis_controller/Algorithm.hpp"
 
 // gtest
 #include <gtest/gtest.h>
@@ -8,7 +8,7 @@
 
 #include <Eigen/Core>
 
-using namespace ros_package_template;
+using namespace hero_chassis_controller;
 
 TEST(Algorithm, getWithoutSet
 ) {

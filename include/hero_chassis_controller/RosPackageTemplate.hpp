@@ -1,13 +1,13 @@
 #pragma once
 
-#include "ros_package_template/Algorithm.hpp"
+#include "hero_chassis_controller/Algorithm.hpp"
 
 // ROS
 #include <ros/ros.h>
 #include <sensor_msgs/Temperature.h>
 #include <std_srvs/Trigger.h>
 
-namespace ros_package_template {
+namespace hero_chassis_controller {
 
 /*!
  * Main class for the node to handle the ROS interfacing.

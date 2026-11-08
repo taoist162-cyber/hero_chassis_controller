@@ -4,7 +4,7 @@
 
 #include <Eigen/Core>
 
-namespace ros_package_template {
+namespace hero_chassis_controller {
 
 /*!
  * Class containing the algorithmic part of the package.

@@ -1,4 +1,4 @@
-#include "ros_package_template/Algorithm.hpp"
+#include "hero_chassis_controller/Algorithm.hpp"
 
 #include <utility>
 
@@ -6,7 +6,7 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/count.hpp>
 
-namespace ros_package_template {
+namespace hero_chassis_controller {
 
 using namespace boost::accumulators;
 
