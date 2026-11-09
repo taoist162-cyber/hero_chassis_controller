@@ -62,3 +62,18 @@ RR = (vx - vy + L*wz) / r
 接收 /cmd_vel 的 linear.x、linear.y、angular.z，其余分量不参与平面控制。
 沿 Y 平移时轮速符号为 [-,+,+,-]，逆时针旋转为 [-,+,-,+]。
 对所有轮速使用共同缩放系数，保持运动方向和曲率。
+
+## 轮式里程计（选做 6）
+
+从四个 JointHandle 的实际轮速计算正运动学，不使用期望轮速冒充反馈：
+
+```text
+vx = r/4 * (FL + FR + RL + RR)
+vy = r/4 * (-FL + FR + RL - RR)
+wz = r/(4*L) * (-FL + FR - RL + RR)
+```
+
+每周期按 SE(2) 积分，处理小角速度的数值稳定性。50 Hz 发布 /odom（nav_msgs/Odometry），
+pose 在 odom 坐标系，twist 在 base_link 坐标系，并发布 odom → base_link 的 /tf。
+publish_odom_tf 可关闭 TF 广播，以便另一个定位模块拥有这条变换。
+控制器重启或仿真时间倒退会清零里程计；麦轮滑移会积累误差，协方差为待实测校准的初值。

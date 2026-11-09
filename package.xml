@@ -15,6 +15,8 @@
   <depend>realtime_tools</depend>
   <depend>roscpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2_msgs</depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_controller</exec_depend>
   <exec_depend>rm_description_for_task</exec_depend>
