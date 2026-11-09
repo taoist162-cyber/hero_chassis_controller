@@ -1,8 +1,7 @@
 <launch>
-
-  <!-- Launch ROS Package Template Node -->
-  <node pkg="hero_chassis_controller" type="hero_chassis_controller" name="hero_chassis_controller" output="screen">
-    <rosparam command="load" file="$(dirname)/../config/default.yaml"/>
-  </node>
-
+  <arg name="config" default="$(find hero_chassis_controller)/config/controllers.yaml"/>
+  <rosparam command="load" file="$(arg config)"/>
+  <node pkg="controller_manager" type="spawner" name="hero_controller_spawner" output="screen"
+        args="controller/hero_chassis_controller controller/joint_state_controller"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="hero_robot_state_publisher"/>
 </launch>

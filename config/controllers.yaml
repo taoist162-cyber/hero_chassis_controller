@@ -1,0 +1,16 @@
+controller:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50
+  hero_chassis_controller:
+    type: hero_chassis_controller/HeroChassisController
+    joints: [left_front_wheel_joint, right_front_wheel_joint, left_back_wheel_joint, right_back_wheel_joint]
+    command_timeout: 0.5
+    max_wheel_speed: 50.0
+    max_effort: 5.0
+    publish_rate: 50.0
+    gains:
+      left_front_wheel_joint: &wheel_pid {p: 0.5, i: 0.1, d: 0.0, i_clamp: 1.0, antiwindup: true}
+      right_front_wheel_joint: *wheel_pid
+      left_back_wheel_joint: *wheel_pid
+      right_back_wheel_joint: *wheel_pid
