@@ -12,7 +12,9 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <realtime_tools/realtime_buffer.h>
 #include <realtime_tools/realtime_publisher.h>
-#include <std_msgs/Float64MultiArray.h>
+#include <geometry_msgs/Twist.h>
+
+#include "hero_chassis_controller/mecanum_kinematics.h"
 
 namespace hero_chassis_controller
 {
@@ -28,12 +30,12 @@ public:
 private:
   struct Command
   {
-    std::array<double, 4> wheels{};
+    PlanarVelocity velocity;
     ros::Time stamp;
     bool valid = false;
   };
   using StatePublisher = realtime_tools::RealtimePublisher<control_msgs::JointControllerState>;
-  void commandCallback(const std_msgs::Float64MultiArrayConstPtr &message);
+  void commandCallback(const geometry_msgs::TwistConstPtr &message);
   void stopWheels();
   void publishWheelStates(const ros::Time &time, const ros::Duration &period,
                           const std::array<double, 4> &targets);
@@ -44,6 +46,7 @@ private:
   std::array<std::unique_ptr<StatePublisher>, 4> state_publishers_;
   realtime_tools::RealtimeBuffer<Command> command_buffer_;
   ros::Subscriber command_subscriber_;
+  MecanumKinematics kinematics_;
   ros::Time starting_time_;
   ros::Time last_publish_time_;
   double command_timeout_ = 0.5;

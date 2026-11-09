@@ -9,6 +9,9 @@ controller:
     max_wheel_speed: 50.0
     max_effort: 5.0
     publish_rate: 50.0
+    wheel_radius: 0.07625
+    wheel_base: 0.4
+    wheel_track: 0.4
     gains:
       left_front_wheel_joint: &wheel_pid {p: 0.5, i: 0.1, d: 0.0, i_clamp: 1.0, antiwindup: true}
       right_front_wheel_joint: *wheel_pid

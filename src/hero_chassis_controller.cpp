@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 #include <pluginlib/class_list_macros.hpp>
@@ -37,6 +38,19 @@ bool HeroChassisController::init(hardware_interface::EffortJointInterface *hardw
     ROS_ERROR("Limits exceed Hero URDF ratings: 5 Nm and 50 rad/s.");
     return false;
   }
+  double radius, base, track;
+  controller_nh.param("wheel_radius", radius, 0.07625);
+  controller_nh.param("wheel_base", base, 0.4);
+  controller_nh.param("wheel_track", track, 0.4);
+  try
+  {
+    kinematics_ = MecanumKinematics(radius, base, track);
+  }
+  catch (const std::invalid_argument &exception)
+  {
+    ROS_ERROR_STREAM(exception.what());
+    return false;
+  }
   try
   {
     for (std::size_t i = 0; i < joints_.size(); ++i)
@@ -66,23 +80,17 @@ bool HeroChassisController::init(hardware_interface::EffortJointInterface *hardw
     return false;
   }
   command_buffer_.initRT(Command{});
-  command_subscriber_ = controller_nh.subscribe("wheel_commands", 1, &HeroChassisController::commandCallback, this);
+  command_subscriber_ = controller_nh.subscribe("/cmd_vel", 1, &HeroChassisController::commandCallback, this);
   return true;
 }
 
-void HeroChassisController::commandCallback(const std_msgs::Float64MultiArrayConstPtr &message)
+void HeroChassisController::commandCallback(const geometry_msgs::TwistConstPtr &message)
 {
   Command command;
   command.stamp = ros::Time::now();
-  command.valid = message->data.size() == 4;
-  if (command.valid)
-  {
-    for (std::size_t i = 0; i < command.wheels.size(); ++i)
-    {
-      command.wheels[i] = message->data[i];
-      command.valid = command.valid && std::isfinite(command.wheels[i]);
-    }
-  }
+  command.velocity = {message->linear.x, message->linear.y, message->angular.z};
+  command.valid = std::isfinite(command.velocity.x) && std::isfinite(command.velocity.y) &&
+                  std::isfinite(command.velocity.yaw);
   command_buffer_.writeFromNonRT(command);
 }
 
@@ -122,10 +130,15 @@ void HeroChassisController::update(const ros::Time &time, const ros::Duration &p
   std::array<double, 4> targets{};
   if (command.valid && command.stamp > starting_time_ && age >= 0.0 && age <= command_timeout_)
   {
-    targets = command.wheels;
+    targets = kinematics_.inverse(command.velocity);
     double peak = 0.0;
     for (double speed : targets)
     {
+      if (!std::isfinite(speed))
+      {
+        stopWheels();
+        return;
+      }
       peak = std::max(peak, std::abs(speed));
     }
     if (peak > max_wheel_speed_)

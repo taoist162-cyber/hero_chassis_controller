@@ -18,12 +18,13 @@
 source ~/chassis_ws/devel/setup.bash
 roslaunch hero_chassis_controller run_simulation_and_controller.launch
 # 等待模型和控制器加载完成，然后点击 Gazebo 的播放按钮。
-rostopic pub -r 10 /controller/hero_chassis_controller/wheel_commands std_msgs/Float64MultiArray "data: [5.0, 5.0, 5.0, 5.0]"
+rostopic pub -r 10 /cmd_vel geometry_msgs/Twist "linear: {x: 0.3, y: 0.0, z: 0.0}"
 rosrun rqt_reconfigure rqt_reconfigure
 rosrun rqt_plot rqt_plot /controller/hero_chassis_controller/left_front_wheel_joint/state/set_point /controller/hero_chassis_controller/left_front_wheel_joint/state/process_value
 ```
 
-轮序为左前、右前、左后、右后，速度单位 rad/s。命令超时 0.5 s 后目标归零；
+轮序为左前、右前、左后、右后。/cmd_vel 为平面底盘速度（m/s、rad/s），内部轮速单位 rad/s。
+命令超时 0.5 s 后目标归零；
 力矩不超过模型的 5 Nm，目标转速按同一比例缩放到 50 rad/s 以内。
 非法命令、无效控制周期、非有限轮速均有处理。starting() 重置 PID，stopping() 将力矩清零。
 
@@ -44,3 +45,20 @@ spawner 根据 YAML 的 type 查找本包 XML 导出的插件，再调用 init �
 构建工具选 catkin-tools（catkin build），不要使用 catkin_make。
 在 CLion Attach to Process 中选择 gzserver，在 init()、update() 设置断点。
 编译、断点调试及仿真演示须在目标机器由 CLion 实际完成。
+
+## 逆运动学（选做 5）
+
+base_link 的 +X 向前、+Y 向左、+Z 向上；逆时针角速度为正。
+四轮关节均沿 +Y；半径 r = 0.07625 m，轮心距 wheel_base = wheel_track = 0.4 m。
+令 L = (wheel_base + wheel_track) / 2，轮速为：
+
+```text
+FL = (vx - vy - L*wz) / r
+FR = (vx + vy + L*wz) / r
+RL = (vx + vy - L*wz) / r
+RR = (vx - vy + L*wz) / r
+```
+
+接收 /cmd_vel 的 linear.x、linear.y、angular.z，其余分量不参与平面控制。
+沿 Y 平移时轮速符号为 [-,+,+,-]，逆时针旋转为 [-,+,-,+]。
+对所有轮速使用共同缩放系数，保持运动方向和曲率。
