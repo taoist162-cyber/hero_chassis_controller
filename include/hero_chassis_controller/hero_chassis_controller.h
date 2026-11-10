@@ -4,6 +4,7 @@
 
 #include <array>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include <control_msgs/JointControllerState.h>
@@ -15,6 +16,7 @@
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <tf2_msgs/TFMessage.h>
+#include <tf2_ros/transform_listener.h>
 
 #include "hero_chassis_controller/mecanum_kinematics.h"
 
@@ -23,6 +25,7 @@ namespace hero_chassis_controller
 class HeroChassisController : public controller_interface::Controller<hardware_interface::EffortJointInterface>
 {
 public:
+  ~HeroChassisController() override;
   bool init(hardware_interface::EffortJointInterface *hardware, ros::NodeHandle &root_nh,
             ros::NodeHandle &controller_nh) override;
   void starting(const ros::Time &time) override;
@@ -38,6 +41,8 @@ private:
   };
   using StatePublisher = realtime_tools::RealtimePublisher<control_msgs::JointControllerState>;
   void commandCallback(const geometry_msgs::TwistConstPtr &message);
+  void transformGlobalCommand(const ros::TimerEvent &event);
+  void writeCommand();  // Caller holds command_mutex_; never called by update().
   void stopWheels();
   void publishWheelStates(const ros::Time &time, const ros::Duration &period,
                           const std::array<double, 4> &targets);
@@ -49,6 +54,14 @@ private:
   std::array<std::unique_ptr<StatePublisher>, 4> state_publishers_;
   realtime_tools::RealtimeBuffer<Command> command_buffer_;
   ros::Subscriber command_subscriber_;
+  std::string command_frame_;
+  std::string global_frame_;
+  double max_tf_age_ = 0.2;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::unique_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::mutex command_mutex_;
+  Command raw_command_;
+  ros::Timer global_command_timer_;
   MecanumKinematics kinematics_;
   WheelOdometry odometry_;
   std::unique_ptr<realtime_tools::RealtimePublisher<nav_msgs::Odometry>> odom_publisher_;

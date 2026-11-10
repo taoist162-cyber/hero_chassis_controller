@@ -15,6 +15,9 @@ controller:
     odom_frame: odom
     base_frame: base_link
     publish_odom_tf: true
+    command_frame: body  # body: base_link velocity; global: odom/map velocity
+    global_frame: odom
+    max_tf_age: 0.2
     gains:
       left_front_wheel_joint: &wheel_pid {p: 0.5, i: 0.1, d: 0.0, i_clamp: 1.0, antiwindup: true}
       right_front_wheel_joint: *wheel_pid

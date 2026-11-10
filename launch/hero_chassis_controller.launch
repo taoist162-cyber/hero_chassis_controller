@@ -1,6 +1,10 @@
 <launch>
   <arg name="config" default="$(find hero_chassis_controller)/config/controllers.yaml"/>
+  <arg name="command_frame" default="body"/>
+  <arg name="global_frame" default="odom"/>
   <rosparam command="load" file="$(arg config)"/>
+  <param name="controller/hero_chassis_controller/command_frame" value="$(arg command_frame)"/>
+  <param name="controller/hero_chassis_controller/global_frame" value="$(arg global_frame)"/>
   <node pkg="controller_manager" type="spawner" name="hero_controller_spawner" output="screen"
         args="controller/hero_chassis_controller controller/joint_state_controller"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="hero_robot_state_publisher"/>

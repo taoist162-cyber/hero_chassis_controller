@@ -7,13 +7,13 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 find_package(catkin REQUIRED COMPONENTS
   control_msgs control_toolbox controller_interface hardware_interface
-  geometry_msgs nav_msgs pluginlib realtime_tools roscpp tf2_msgs
+  geometry_msgs nav_msgs pluginlib realtime_tools roscpp tf2_geometry_msgs tf2_msgs tf2_ros
 )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS control_msgs control_toolbox controller_interface hardware_interface
-    geometry_msgs nav_msgs pluginlib realtime_tools roscpp tf2_msgs
+    geometry_msgs nav_msgs pluginlib realtime_tools roscpp tf2_geometry_msgs tf2_msgs tf2_ros
 )
 include_directories(include ${catkin_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} src/hero_chassis_controller.cpp src/mecanum_kinematics.cpp)

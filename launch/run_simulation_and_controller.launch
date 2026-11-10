@@ -2,6 +2,8 @@
   <arg name="paused" default="true"/>
   <arg name="roller_type" default="realistic"/>
   <arg name="config" default="$(find hero_chassis_controller)/config/controllers.yaml"/>
+  <arg name="command_frame" default="body"/>
+  <arg name="global_frame" default="odom"/>
   <include file="$(find rm_description_for_task)/launch/hero.launch">
     <arg name="load_chassis" value="true"/>
     <arg name="paused" value="$(arg paused)"/>
@@ -9,5 +11,7 @@
   </include>
   <include file="$(find hero_chassis_controller)/launch/hero_chassis_controller.launch">
     <arg name="config" value="$(arg config)"/>
+    <arg name="command_frame" value="$(arg command_frame)"/>
+    <arg name="global_frame" value="$(arg global_frame)"/>
   </include>
 </launch>

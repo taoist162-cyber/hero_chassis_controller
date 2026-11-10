@@ -77,3 +77,18 @@ wz = r/(4*L) * (-FL + FR - RL + RR)
 pose 在 odom 坐标系，twist 在 base_link 坐标系，并发布 odom → base_link 的 /tf。
 publish_odom_tf 可关闭 TF 广播，以便另一个定位模块拥有这条变换。
 控制器重启或仿真时间倒退会清零里程计；麦轮滑移会积累误差，协方差为待实测校准的初值。
+
+## 世界坐标速度控制（选做 7）
+
+YAML 中 command_frame 选择 body/global，global_frame 选择 odom 或 map。
+启动文件也提供同名参数（启动参数覆盖 YAML）：
+
+```bash
+roslaunch hero_chassis_controller run_simulation_and_controller.launch command_frame:=global global_frame:=odom
+```
+
+body 模式直接使用底盘速度。global 模式通过 tf2 lookupTransform(base_link, odom/map, latest)
+和 doTransform(Vector3Stamped) 旋转线速度、角速度，等价于 tf 的 transformVector；
+不把 TF 平移量加到速度上。50 Hz 非实时回调刷新变换，控制循环不等待 TF。
+TF 缺失或超过 max_tf_age 时目标归零；原始命令接收时间保留，TF 刷新不会延长命令超时。
+map 模式需要定位节点额外提供 map → odom。模式在启动时选定，更改后重新加载控制器。

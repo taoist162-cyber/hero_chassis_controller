@@ -8,9 +8,17 @@
 #include <vector>
 
 #include <pluginlib/class_list_macros.hpp>
+#include <geometry_msgs/Vector3Stamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace hero_chassis_controller
 {
+HeroChassisController::~HeroChassisController()
+{
+  global_command_timer_.stop();
+  command_subscriber_.shutdown();
+}
+
 bool HeroChassisController::init(hardware_interface::EffortJointInterface *hardware, ros::NodeHandle &,
                                  ros::NodeHandle &controller_nh)
 {
@@ -106,6 +114,22 @@ bool HeroChassisController::init(hardware_interface::EffortJointInterface *hardw
     tf_publisher_->msg_.transforms[0].header.frame_id = odom_frame_;
     tf_publisher_->msg_.transforms[0].child_frame_id = base_frame_;
   }
+  controller_nh.param<std::string>("command_frame", command_frame_, "body");
+  controller_nh.param<std::string>("global_frame", global_frame_, "odom");
+  controller_nh.param("max_tf_age", max_tf_age_, 0.2);
+  if ((command_frame_ != "body" && command_frame_ != "global") || global_frame_.empty() ||
+      global_frame_ == base_frame_ || !std::isfinite(max_tf_age_) || max_tf_age_ <= 0.0)
+  {
+    ROS_ERROR("command_frame must be body/global; global_frame must differ from base_frame; max_tf_age > 0.");
+    return false;
+  }
+  if (command_frame_ == "global")
+  {
+    tf_buffer_.reset(new tf2_ros::Buffer);
+    tf_listener_.reset(new tf2_ros::TransformListener(*tf_buffer_));
+    global_command_timer_ = controller_nh.createTimer(ros::Duration(0.02),
+                                                      &HeroChassisController::transformGlobalCommand, this);
+  }
   command_subscriber_ = controller_nh.subscribe("/cmd_vel", 1, &HeroChassisController::commandCallback, this);
   return true;
 }
@@ -117,6 +141,53 @@ void HeroChassisController::commandCallback(const geometry_msgs::TwistConstPtr &
   command.velocity = {message->linear.x, message->linear.y, message->angular.z};
   command.valid = std::isfinite(command.velocity.x) && std::isfinite(command.velocity.y) &&
                   std::isfinite(command.velocity.yaw);
+  std::lock_guard<std::mutex> lock(command_mutex_);
+  raw_command_ = command;
+  writeCommand();
+}
+
+void HeroChassisController::transformGlobalCommand(const ros::TimerEvent &)
+{
+  std::lock_guard<std::mutex> lock(command_mutex_);
+  writeCommand();
+}
+
+void HeroChassisController::writeCommand()
+{
+  Command command = raw_command_;
+  if (command_frame_ == "global" && command.valid)
+  {
+    try
+    {
+      // This lookup runs on ROS callbacks, never on the controller update thread.
+      const auto transform = tf_buffer_->lookupTransform(base_frame_, global_frame_, ros::Time(0));
+      const double age = (ros::Time::now() - transform.header.stamp).toSec();
+      if (!transform.header.stamp.isZero() && (age < 0.0 || age > max_tf_age_))
+      {
+        command.valid = false;
+        ROS_WARN_THROTTLE(1.0, "Global command stopped: TF is stale or in the future.");
+      }
+      else
+      {
+        geometry_msgs::Vector3Stamped linear, angular, body_linear, body_angular;
+        linear.header.frame_id = global_frame_;
+        angular.header.frame_id = global_frame_;
+        linear.vector.x = command.velocity.x;
+        linear.vector.y = command.velocity.y;
+        angular.vector.z = command.velocity.yaw;
+        // Velocity vectors are rotated only; translation must not be applied.
+        tf2::doTransform(linear, body_linear, transform);
+        tf2::doTransform(angular, body_angular, transform);
+        command.velocity = {body_linear.vector.x, body_linear.vector.y, body_angular.vector.z};
+      }
+    }
+    catch (const tf2::TransformException &exception)
+    {
+      command.valid = false;
+      ROS_WARN_THROTTLE(1.0, "Global command stopped: %s", exception.what());
+    }
+  }
+  // Preserve the receipt stamp: a new TF must never extend the command watchdog.
   command_buffer_.writeFromNonRT(command);
 }
 
