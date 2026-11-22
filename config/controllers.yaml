@@ -19,7 +19,7 @@ controller:
     global_frame: odom
     max_tf_age: 0.2
     gains:
-      left_front_wheel_joint: &wheel_pid {p: 0.5, i: 0.1, d: 0.0, i_clamp: 1.0, antiwindup: true}
+      left_front_wheel_joint: &wheel_pid {p: 0.0, i: 0.0, d: 0.0, i_clamp: 1.0, antiwindup: true}
       right_front_wheel_joint: *wheel_pid
       left_back_wheel_joint: *wheel_pid
       right_back_wheel_joint: *wheel_pid
